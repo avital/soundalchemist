@@ -60,7 +60,7 @@ body {
     position: absolute;
     width: @coversize;
     height: @coversize;
-    border: @currentborder;
+/*    border: @currentborder;*/
     left: 50%;
     margin-left: -@coversize / 2;
     background-color: white;
@@ -86,24 +86,14 @@ body {
 @future1-gap-width: 220px;
 @future1-gap-height: 50px;
 
-.future1 {
-    margin-left: -@coversize / 2 + @future1-gap-width;
+.future1, .future-1 {
     top: @currenttop + @currentheight + 1 + @future1-gap-height;
+    opacity: 0.5;
 }
 
-.future-1 {
-    margin-left: -@coversize / 2 - @future1-gap-width;
-    top: @currenttop + @currentheight + 1 + @future1-gap-height;
-}
-
-.future2 {
-    margin-left: -@coversize / 2 + @future1-gap-width * 2 + 30px;
-    top: @currenttop + @currentheight + 1 + @future1-gap-height + 85px;
-}
-
-.future-2 {
-    margin-left: -@coversize / 2 - @future1-gap-width * 2 - 30px;
-    top: @currenttop + @currentheight + 1 + @future1-gap-height + 85px;
+.future2, .future-2 {
+    opacity: 0.2;
+    top: @currenttop + @currentheight + 1 + @future1-gap-height + 55px;
 }
 
 .current {

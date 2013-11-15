@@ -51,6 +51,9 @@ Template.main.helpers({
   distance: [0, 1, 2, 3],
   top: function () {
     return this * 100; // XXX dup with @coversize in main.less
+  },
+  left: function(dir) {
+    return dir * (this + 6) * 25 - (100/* @coversize*/ / 2);
   }
 });
 
