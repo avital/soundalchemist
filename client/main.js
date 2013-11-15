@@ -54,6 +54,9 @@ Template.main.helpers({
   },
   left: function(dir) {
     return dir * (this + 6) * 25 - (100/* @coversize*/ / 2);
+  },
+  waiting: function () {
+    return Session.get("waiting");
   }
 });
 
@@ -70,13 +73,22 @@ Template.main.events({
     }
   },
   'click .skip': function () {
-    Meteor.call("skip", Session.get("journeyId"));
+    Session.set("waiting", true);
+    Meteor.call("skip", Session.get("journeyId"), function () {
+      Session.set("waiting", false);
+    });
   },
   'click .downvote': function () {
-    Meteor.call("vote", Session.get("journeyId"), -1);
+    Session.set("waiting", true);
+    Meteor.call("vote", Session.get("journeyId"), -1, function () {
+      Session.set("waiting", false);
+    });
   },
   'click .upvote': function () {
-    Meteor.call("vote", Session.get("journeyId"), +1);
+    Session.set("waiting", true);
+    Meteor.call("vote", Session.get("journeyId"), +1, function () {
+      Session.set("waiting", false);
+    });
   }
 });
 

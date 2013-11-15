@@ -30,6 +30,8 @@ Meteor.methods({
     if (data.kind !== 'track')
       throw new Meteor.Error(400, "not a track");
 
+    data = _.pick(data, 'id', 'artwork_url');
+
     var favoriters = HTTP.get("http://api.soundcloud.com/tracks/" + data.id + "/favoriters.json", {
       params: {
         limit: LIMIT,
@@ -58,7 +60,7 @@ Meteor.methods({
       _.each(likes, function (like) {
         if (like.kind === 'track') {
           recommendations[like.id] = recommendations[like.id] ||
-            _.extend({rank: 0}, _.pick(like, 'id', 'artwork_url', 'permalink_url', 'stream_url'));
+            _.extend({rank: 0}, _.pick(like, 'id', 'artwork_url'));
           recommendations[like.id].rank += (LIMIT / likes.length) * (LIMIT / favoriters.length);
         }
       });
