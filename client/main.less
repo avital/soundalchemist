@@ -1,0 +1,146 @@
+body {
+    background-color: #000033;
+    margin: 0;
+    border: 0;
+    padding: 0;
+}
+
+@mainwidth: 1000px;
+@mainheight: 700px;
+@act-height: 20px;
+@act-width: 45px;
+
+.act {
+    height: @act-height;
+    width: @act-width;
+    position: absolute;
+    left: 50%;
+    margin-left: -@act-width / 2;
+    top: @currenttop + @currentheight + 1;
+}
+
+.downvote {
+    margin-left: -@act-width / 2 - @future1-gap-width;
+}
+
+.upvote {
+    margin-left: -@act-width / 2 + @future1-gap-width;
+}
+
+.main {
+    background-color: #aadacb;
+    margin: 0;
+    border: 0;
+    padding: 0;
+
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin-left: -@mainwidth / 2;
+    margin-top: -@mainheight / 2;
+
+    width: @mainwidth;
+    height: @mainheight;
+
+    overflow: hidden;
+}
+
+@currentwidth: 700px;
+@currentheight: 166px;
+@currentborder: 1px solid grey;
+@currenttop: 150px;
+
+@coversize: 100px;
+
+.hidden {
+    display: none;
+}
+
+.past, .future {
+    position: absolute;
+    width: @coversize;
+    height: @coversize;
+    border: @currentborder;
+    left: 50%;
+    margin-left: -@coversize / 2;
+    background-color: white;
+}
+
+.current-art {
+    width: @coversize;
+    height: @coversize;
+}
+
+.past0 {
+    top: @currenttop - @coversize - 1;
+}
+
+.past1 {
+    top: @currenttop - @coversize * 2 - 1;
+}
+
+.future0 {
+    top: @currenttop + @currentheight + @act-height + 1;
+}
+
+@future1-gap-width: 220px;
+@future1-gap-height: 50px;
+
+.future1 {
+    margin-left: -@coversize / 2 + @future1-gap-width;
+    top: @currenttop + @currentheight + 1 + @future1-gap-height;
+}
+
+.future-1 {
+    margin-left: -@coversize / 2 - @future1-gap-width;
+    top: @currenttop + @currentheight + 1 + @future1-gap-height;
+}
+
+.future2 {
+    margin-left: -@coversize / 2 + @future1-gap-width * 2 + 30px;
+    top: @currenttop + @currentheight + 1 + @future1-gap-height + 85px;
+}
+
+.future-2 {
+    margin-left: -@coversize / 2 - @future1-gap-width * 2 - 30px;
+    top: @currenttop + @currentheight + 1 + @future1-gap-height + 85px;
+}
+
+.current {
+    border: @currentborder;
+    width: @currentwidth;
+    height: @currentheight;
+    position: absolute;
+    left: 50%;
+    margin-left: -@currentwidth / 2;
+    top: @currenttop;
+    background-color: white;
+}
+
+.entry-wrapper {
+    width: @currentwidth;
+    left: 50%;
+    margin-left: -@currentwidth / 2;
+    top: @currenttop + 20px;
+    position: absolute;
+    height: 40px;
+    border: @currentborder;
+    background-color: white;
+}
+
+.entry {
+    border: 0;
+    height: 100%;
+    width: 100%;
+    padding: 0px;
+    font-size: 22px;
+    text-align: center;
+}
+
+.entry-error {
+    padding-top: 3px;
+    font-size: 18px;
+    color: #bb0000;
+    text-align: center;
+}
+
