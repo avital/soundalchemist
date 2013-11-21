@@ -4,6 +4,7 @@ soundcloudClientId = "17a48e602c9a59c5a713b456b60fea68";
 
 var Future = Npm.require("fibers/future");
 var LIMIT = Meteor._get(Meteor.settings, 'public', 'prod') ? 120 : 5;
+var MAX_LIMIT = 200;
 
 Meteor.methods({
   // opts: either {trackId: 172234} or {url: "http://soundcloud.com/foo/bar"}
@@ -87,7 +88,7 @@ Meteor.methods({
 
       var likes = HTTP.get("http://api.soundcloud.com/users/" + user.id + "/favorites.json", {
         params: {
-          limit: LIMIT,
+          limit: MAX_LIMIT,
           client_id: soundcloudClientId
         }
       }, function (err, res) {
