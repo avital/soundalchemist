@@ -5,30 +5,65 @@
 <template name="main">
   <div class="main">
     {{#if started}}
+      <a class="back">< Start a new journey</a>
+    {{/if}}
+
+    {{#if started}}
       {{#if pastArtworkUrl 1}}
         <div class="past past1" style="background-image: url({{pastArtworkUrl 1}})" />
       {{/if}}
-      <div class="past past0" style="background-image: url({{pastArtworkUrl 0}})" />
+      {{#if pastArtworkUrl 0}}
+        <div class="past past0" style="background-image: url({{pastArtworkUrl 0}})" />
+      {{/if}}
+
       <div class="current">
-        <iframe width="100%" height="166" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/{{currentTrackId}}&amp;color=ff6600&amp;auto_play=true&amp;show_artwork=true"></iframe>
+        {{#if currentTrackId}}
+          <iframe id="player" width="100%" height="166" scrolling="no" frameborder="no"
+                  src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/{{currentTrackId}}&amp;color=ff6600&amp;auto_play=true&amp;show_artwork=true&amp;show_comments=false&amp;default_height=100&amp;enable_api=true">
+          </iframe>
+        {{else}}
+          <div class="loading"></div>
+        {{/if}}
+
+        {{#if error}}
+          <div class="entry-error">{{error}}</div>
+        {{/if}}
       </div>
-      {{#unless waiting}}
-        <button class="act skip">onward</button>
-        <button class="act downvote">dislike</button>
-        <button class="act upvote">like</button>
+
+      {{#if future}}
+        <button class="act skip">next</button>
+        {{#if canVote}}
+          <button class="act downvote">less like this</button>
+          <button class="act upvote">even more like this</button>
+        {{else}}
+          {{#if recommendationsLoaded}}
+            <button class="act upvote" type="button"
+                    disabled>
+              {{recommendationsLoadedPercent}}%
+            </button>
+          {{/if}}
+        {{/if}}
       {{else}}
-        <div class="act">
-          <div class="act-loading">
-            {{> loading}}
-           </div>
-        </div>
-      {{/unless}}
+        {{#if recommendationsLoaded}}
+          <button class="act skip" type="button"
+                  disabled>
+            {{recommendationsLoadedPercent}}%
+          </button>
+        {{/if}}
+      {{/if}}
 
       {{#each directions}}
-        {{#each distance}}
-          <div class="future future{{..}} future{{..}}_{{.}}" style="background-image: url({{futureArtworkUrl .. .}}); margin-top: {{top}}px; margin-left: {{left ..}}px" />
-        {{/each}}
+        {{#if future}}
+          {{#each distance}}
+            {{#if futureEntry .. .}}
+              <div class="future future{{..}} future{{..}}_{{.}}"
+                   style="background-image: url({{futureArtworkUrl .. .}}); margin-top: {{top}}px; margin-left: {{left ..}}px">
+              </div>
+            {{/if}}
+          {{/each}}
+        {{/if}}
       {{/each}}
+
     {{else}}
       <div class="entry-wrapper">
         {{#if loading}}

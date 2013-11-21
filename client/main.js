@@ -21,8 +21,12 @@ Meteor.startup(function () {
 
 
 var journey = function () {
-  return Journeys.findOne(Session.get("journeyId"));
+  return Session.get("journey");
 };
+
+Deps.autorun(function () {
+  Session.set("journey", Journeys.findOne(Session.get("journeyId")));
+});
 
 Deps.autorun(function () {
   Meteor.subscribe("journey", Session.get("journeyId"));
@@ -33,7 +37,7 @@ Template.main.helpers({
     return Session.get("journeyId");
   },
   error: function () {
-    return Session.get("error");
+    return Session.get("error") || (journey() && journey().error);
   },
   loading: function () {
     return Session.get("loading");
@@ -41,13 +45,36 @@ Template.main.helpers({
   pastArtworkUrl: function (i) {
     return journey() && Meteor._get(journey(), 'past', i, 'artwork_url');
   },
+  future: function () {
+    return journey() && Meteor._get(journey(), 'future', 0, 0);
+  },
   futureArtworkUrl: function (side, i) {
     return journey() && Meteor._get(journey(), 'future', side, i, "artwork_url");
   },
   currentTrackId: function () {
-    return journey() && Meteor._get(journey(), 'current', 'id');
+    return Session.get("currentTrackId");
   },
-  directions: [-2, -1, 0, 1, 2],
+  recommendations: function () {
+    return journey() && journey().recommendations;
+  },
+  recommendationsLoaded: function () {
+    return journey() && journey().recommendationsLoaded && journey().recommendationsLoaded !== 1;
+  },
+  recommendationsLoadedPercent: function () {
+    return journey() && Math.floor(journey().recommendationsLoaded * 100);
+  },
+  canVote: function () {
+    return journey() && journey().past && Meteor._get(journey(), 'future', 1, 0);
+  },
+  futureEntry: function (side, i) {
+    return journey() && Meteor._get(journey(), 'future', side, i);
+  },
+  directions: function () {
+    if (Template.main.canVote())
+      return [-2, -1, 0, 1, 2];
+    else
+      return [0];
+  },
   distance: [0, 1, 2, 3],
   top: function () {
     return this * 100; // XXX dup with @coversize in main.less
@@ -57,10 +84,17 @@ Template.main.helpers({
   },
   waiting: function () {
     return Session.get("waiting");
+  },
+  past: function () {
+    return journey() && journey().past;
   }
 });
 
 Template.main.events({
+  'click .back': function () {
+    router.main();
+  },
+
   'keypress .entry': function (evt, tmpl) {
     if (evt.which === 13) { // enter
       var url = tmpl.find('.entry').value;
@@ -99,7 +133,7 @@ var start = function (url) {
       Session.set("loading", false);
       Session.set("error", err.reason);
     } else {
-      animateEntryToPast0(function () {
+      animateEntryToCurrent(function () {
         Session.set("loading", false);
         router.journey(journeyId);
         Deps.flush();
@@ -110,7 +144,36 @@ var start = function (url) {
   });
 };
 
-var animateEntryToPast0 = function (transition) {
+Session.set("currentTrackId", null);
+
+Deps.autorun(function () {
+  if (journey() && journey().current.id) {
+    Session.set("currentTrackId", journey().current.id);
+  }
+});
+
+player = null;
+Deps.autorun(function () {
+  if (Session.get("currentTrackId")) {
+    Meteor.defer(function () {
+      player = SC.Widget("player");
+      player.bind(SC.Widget.Events.READY, function () {
+        console.log("ready");
+        Meteor.setTimeout(function () { // XXX mysteriously, without
+          // waiting the event gets
+          // registered but doesn't fire.
+          player.unbind(SC.Widget.Events.FINISH);
+          player.bind(SC.Widget.Events.FINISH, function () {
+            console.log("finish");
+            Meteor.call("skip", Session.get("journeyId"));
+          });
+        }, 5000);
+      });
+    });
+  }
+});
+
+var animateEntryToCurrent = function (transition) {
   $('.loading').animate({opacity: 0}, 600, function () {
     var startTop = $('.entry-wrapper').offset().top;
     var startLeft = $('.entry-wrapper').offset().left;
@@ -122,11 +185,11 @@ var animateEntryToPast0 = function (transition) {
 
     $('.current').css({opacity: 0});
 
-    var endTop = $('.past0').offset().top;
-    var endLeft = $('.past0').offset().left;
-    var endHeight = $('.past0').height();
-    var endWidth = $('.past0').width();
-    $('.past0').addClass('hidden');
+    var endTop = $('.current').offset().top;
+    var endLeft = $('.current').offset().left;
+    var endHeight = $('.current').height();
+    var endWidth = $('.current').width();
+    $('.current').addClass('hidden');
 
     loadingClone.css({
       position: 'absolute',
@@ -144,7 +207,7 @@ var animateEntryToPast0 = function (transition) {
       width: endWidth
     }, 600, function () {
       loadingClone.remove();
-      $('.past0').removeClass('hidden');
+      $('.current').removeClass('hidden');
       $('.current').animate({opacity: 1}, 1000);
     });
   });

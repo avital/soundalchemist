@@ -6,9 +6,20 @@ body {
 }
 
 @mainwidth: 1000px;
-@mainheight: 700px;
-@act-height: 20px;
-@act-width: 65px;
+@mainheight: 760px;
+@act-height: 70px;
+@act-width: 110px;
+@act-gap: 10px;
+
+.back {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 16px;
+    color: blue;
+    text-decoration: underline;
+    cursor: pointer;
+}
 
 .act {
     height: @act-height;
@@ -16,14 +27,20 @@ body {
     position: absolute;
     left: 50%;
     margin-left: -@act-width / 2;
-    top: @currenttop + @currentheight + 1;
+    top: @currenttop + @currentheight + @act-gap;
+    font-size: 18px;
+    background-color: #44dd66;
+}
+
+.act.downvote, .act.upvote {
+    background-color: #6677bb;
 }
 
 .act-loading {
     overflow: hidden;
     position: relative;
     top: -10px;
-    left: -15px;
+    left: -2px;
     margin-left: 5px;
 }
 
@@ -88,20 +105,20 @@ body {
 }
 
 .future0 {
-    top: @currenttop + @currentheight + @act-height + 1;
+    top: @currenttop + @currentheight + @act-height + @act-gap * 2;
 }
 
 @future1-gap-width: 130px;
 @future1-gap-height: 50px;
 
 .future1, .future-1 {
-    top: @currenttop + @currentheight + 1 + @future1-gap-height;
-    opacity: 0.5;
+    top: @currenttop + @currentheight + @act-height + @act-gap * 2 + @future1-gap-height;
+    opacity: 0.4;
 }
 
 .future2, .future-2 {
     opacity: 0.2;
-    top: @currenttop + @currentheight + 1 + @future1-gap-height + 55px;
+    top: @currenttop + @currentheight + @act-height + @act-gap * 2 + @future1-gap-height + 55px;
 }
 
 .current {

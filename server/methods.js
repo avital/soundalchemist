@@ -1,21 +1,22 @@
+// XXX move this from the repo to a settings.json file that is in a
+// private repository
 soundcloudClientId = "17a48e602c9a59c5a713b456b60fea68";
 
 var Future = Npm.require("fibers/future");
-
-var LIMIT = 45;
+var LIMIT = Meteor._get(Meteor.settings, 'public', 'prod') ? 100 : 5;
 
 Meteor.methods({
   // opts: either {trackId: 172234} or {url: "http://soundcloud.com/foo/bar"}
   loadTrack: function (opts) {
     var data;
     try {
-      if (opts.trackId)
+      if (opts.trackId) {
         data = HTTP.get("http://api.soundcloud.com/tracks/" + opts.trackId + ".json", {
           params: {
             client_id: soundcloudClientId
           }
         }).data;
-      else {
+      } else {
         data = HTTP.get("http://api.soundcloud.com/resolve.json", {
           params: {
             url: opts.url,
@@ -31,14 +32,56 @@ Meteor.methods({
       throw new Meteor.Error(400, "not a track");
 
     data = _.pick(data, 'id', 'artwork_url');
+    return data;
+  },
 
-    var favoriters = HTTP.get("http://api.soundcloud.com/tracks/" + data.id + "/favoriters.json", {
+  buildRecommendations: function (journeyId) {
+    var attempts = 0;
+    var MAX_ATTEMPTS = 15;
+    var error = undefined; // might be "503 - Service Unavailable"
+
+    for (;;) {
+      try {
+        attempts++;
+        console.log("tryBuildRecommendations, attempt " + attempts);
+        Meteor.call("tryBuildRecommendations", journeyId);
+        // success
+        break;
+      } catch (e) {
+        if (attempts === MAX_ATTEMPTS) {
+          error = e;
+          break;
+        } else {
+          Meteor._sleepForMs(1000 * Math.pow(1.15, attempts));
+        }
+      }
+    }
+
+    if (error) {
+      Journeys.update(journeyId,
+                      {$set: {error: error.message},
+                       $unset: {recommendationsLoaded: true}});
+      throw error;
+    } else {
+      Journeys.update(journeyId,
+                      {$unset: {error: true}});
+    }
+  },
+
+  // build `journey.current.recommendations`. updates a progress bar,
+  // so this is best run not at the top-level of a method.
+  tryBuildRecommendations: function (journeyId) {
+    var journey = Journeys.findOne(journeyId);
+    var trackId = journey.current.id;
+
+    var favoriters = HTTP.get("http://api.soundcloud.com/tracks/" + trackId + "/favoriters.json", {
       params: {
         limit: LIMIT,
         client_id: soundcloudClientId
       }
     }).data;
 
+    var i = 0;
     var futures = _.map(favoriters, function (user) {
       var fut = new Future;
 
@@ -47,7 +90,11 @@ Meteor.methods({
           limit: LIMIT,
           client_id: soundcloudClientId
         }
-      }, fut.resolver());
+      }, function (err, res) {
+        i++;
+        Journeys.update(journeyId, {$set: {recommendationsLoaded: i / favoriters.length}});
+        fut.resolver()(null, res);
+      });
 
       return fut;
     });
@@ -57,80 +104,53 @@ Meteor.methods({
     var recommendations = {};
     _.each(futures, function (future) {
       var likes = future.get().data;
-      _.each(likes, function (like) {
+      likes && _.each(likes, function (like) {
         if (like.kind === 'track') {
           recommendations[like.id] = recommendations[like.id] ||
             _.extend({rank: 0}, _.pick(like, 'id', 'artwork_url'));
-          recommendations[like.id].rank += (LIMIT / likes.length) * (LIMIT / favoriters.length);
+          // XXX think about the math with tracks with many followers, vs <200.
+          recommendations[like.id].rank += 1;
         }
       });
     });
 
-    delete recommendations[data.id];
-
-    data.recommendations = recommendations;
-    Tracks.upsert(data.id, {$set: data});
-    return data;
+    delete recommendations[trackId];
+    Journeys.update(journeyId, {$set: {"current.recommendations": recommendations}});
   }
 });
-
-var DECAY = 0.9;
 
 Meteor.methods({
   startJourney: function (url) {
     var track = Meteor.call("loadTrack", {url: url});
-    var journeyId = Journeys.insert({recommend: {}, current: track});
-    Meteor.call("vote", journeyId, +1);
-    Meteor.call("skip", journeyId);
-    return journeyId;
-  },
+    var journeyId = Journeys.insert({current: track, recommendationsLoaded: 0.001});
 
-  vote: function (journeyId, weight) {
-    var journey = Journeys.findOne(journeyId);
-    if (!journey.currentWeight)
-      journey.currentWeight = 0;
-    journey.currentWeight += weight;
-
-    _.each(journey.current.recommendations, function (rec, id) {
-      if (!journey.recommend[id])
-        journey.recommend[id] = _.extend(_.extend({}, rec), {rank: 0});
-      journey.recommend[id].rank += rec.rank * weight;
+    // return immediately so users don't have to wait for music to
+    // start, but prepare recommendations in the background
+    Meteor.defer(function () {
+      Meteor.call("buildRecommendations", journeyId);
+      var journey = Journeys.findOne(journeyId);
+      Journeys.update(journeyId, {$set: {recommendations: journey.current.recommendations}});
+      Meteor.call("vote", journeyId, +1);
     });
 
-    updateFuture(journey);
-    Journeys.update(journeyId, journey);
-  },
-
-  skip: function (journeyId) {
-    var journey = Journeys.findOne(journeyId);
-    if (!journey.past)
-      journey.past = [];
-
-    journey.past.unshift(_.extend({weight: journey.currentWeight}, journey.current));
-    journey.past = journey.past.splice(0, 5);
-    journey.currentWeight = 0;
-    var currentId = journey.future[0][0].id;
-
-    journey.current = Meteor.call("loadTrack", {trackId: currentId});
-    updateFuture(journey);
-    Journeys.update(journeyId, journey);
+    return journeyId;
   }
 });
 
-var updateFuture = function (journey) {
+updateFuture = function (journey) {
   if (!journey.future)
     journey.future = {};
 
   _.each([-2, -1, 0, 1, 2], function (direction) {
-    var directedRecommend = EJSON.clone(journey.recommend);
+    var directedRecommendations = EJSON.clone(journey.recommendations);
 
     _.each(journey.current.recommendations, function (rec, id) {
-      if (!directedRecommend[id])
-        directedRecommend[id] = {rank: 0};
-      directedRecommend[id].rank += rec.rank * direction;
+      if (!directedRecommendations[id])
+        directedRecommendations[id] = {rank: 0};
+      directedRecommendations[id].rank += rec.rank * direction;
     });
 
-    var pairs = pairsWithoutPlayed(_.pairs(directedRecommend), journey);
+    var pairs = pairsWithoutPlayed(_.pairs(directedRecommendations), journey);
 
     var trail = [];
     _.times(5, function () {
