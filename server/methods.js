@@ -3,7 +3,7 @@
 soundcloudClientId = "17a48e602c9a59c5a713b456b60fea68";
 
 var Future = Npm.require("fibers/future");
-var LIMIT = Meteor._get(Meteor.settings, 'public', 'prod') ? 100 : 5;
+var LIMIT = Meteor._get(Meteor.settings, 'public', 'prod') ? 120 : 5;
 
 Meteor.methods({
   // opts: either {trackId: 172234} or {url: "http://soundcloud.com/foo/bar"}
@@ -114,7 +114,14 @@ Meteor.methods({
       });
     });
 
+    // a rank of 1 is almost surely just a fluke.
+    _.each(recommendations, function (entry, id) {
+      if (entry.rank === 1)
+        delete recommendations[id];
+    });
+
     delete recommendations[trackId];
+
     Journeys.update(journeyId, {$set: {"current.recommendations": recommendations}});
   }
 });
@@ -128,8 +135,6 @@ Meteor.methods({
     // start, but prepare recommendations in the background
     Meteor.defer(function () {
       Meteor.call("buildRecommendations", journeyId);
-      var journey = Journeys.findOne(journeyId);
-      Journeys.update(journeyId, {$set: {recommendations: journey.current.recommendations}});
       Meteor.call("vote", journeyId, +1);
     });
 
