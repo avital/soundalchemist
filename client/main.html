@@ -5,15 +5,15 @@
 <template name="main">
   <div class="main">
     {{#if started}}
-      <a class="back">< Start a new journey</a>
+      <a class="back">&lt; Start a new journey</a>
     {{/if}}
 
     {{#if started}}
       {{#if pastArtworkUrl 1}}
-        <div class="past past1" style="background-image: url({{pastArtworkUrl 1}})" />
+        <div class="past past1" style="background-image: url({{pastArtworkUrl 1}})"></div>
       {{/if}}
       {{#if pastArtworkUrl 0}}
-        <div class="past past0" style="background-image: url({{pastArtworkUrl 0}})" />
+        <div class="past past0" style="background-image: url({{pastArtworkUrl 0}})"></div>
       {{/if}}
 
       <div class="current">
@@ -32,23 +32,16 @@
 
       {{#if future}}
         <button class="act skip">next</button>
-        {{#if canVote}}
-          <button class="act downvote">less like this</button>
-          <button class="act upvote">even more like this</button>
-        {{else}}
-          {{#if recommendationsLoaded}}
-            <button class="act upvote" type="button"
-                    disabled>
-              {{recommendationsLoadedPercent}}%
-            </button>
-          {{/if}}
-        {{/if}}
-      {{else}}
-        {{#if recommendationsLoaded}}
-          <button class="act skip" type="button"
+        {{#if recommendationsLoading}}
+          <button class="act upvote" type="button"
                   disabled>
             {{recommendationsLoadedPercent}}%
           </button>
+        {{else}}
+          {{#if canVote}}
+            <button class="act downvote">less like this</button>
+            <button class="act upvote">even more like this</button>
+          {{/if}}
         {{/if}}
       {{/if}}
 
@@ -68,7 +61,7 @@
       <div class="entry-wrapper">
         {{#if loading}}
           <div class="loading">
-            {{> loading}}
+            {{> dots}}
           </div>
         {{else}}
           <input placeholder="soundcloud url" class="entry" />
@@ -78,6 +71,5 @@
         {{/if}}
       </div>
     {{/if}}
-    </div>
   </div>
 </template>

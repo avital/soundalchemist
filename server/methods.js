@@ -3,8 +3,11 @@
 soundcloudClientId = "17a48e602c9a59c5a713b456b60fea68";
 
 var Future = Npm.require("fibers/future");
-var LIMIT = Meteor._get(Meteor.settings, 'public', 'prod') ? 120 : 5;
+var LIMIT = 20;//Meteor._get(Meteor.settings, 'public', 'prod') ? 120 : 5;
 var MAX_LIMIT = 200;
+
+// used to break out of a call to buildRecommendation
+var buildRecommendationsCounter = 0;
 
 Meteor.methods({
   // opts: either {trackId: 172234} or {url: "http://soundcloud.com/foo/bar"}
@@ -37,24 +40,40 @@ Meteor.methods({
   },
 
   buildRecommendations: function (journeyId) {
+    // let subsequence methods run; they know how to stop this one if they want to
+    this.unblock();
+
     var attempts = 0;
     var MAX_ATTEMPTS = 15;
     var error = undefined; // might be "503 - Service Unavailable"
+    var ourBuildRecommmendationsCounter = ++buildRecommendationsCounter;
+    console.log('buildRecommendations: ', buildRecommendationsCounter);
 
     for (;;) {
-      try {
-        attempts++;
-        console.log("tryBuildRecommendations, attempt " + attempts);
-        Meteor.call("tryBuildRecommendations", journeyId);
-        // success
-        break;
-      } catch (e) {
-        if (attempts === MAX_ATTEMPTS) {
-          error = e;
-          break;
-        } else {
-          Meteor._sleepForMs(1000 * Math.pow(1.15, attempts));
-        }
+      if (ourBuildRecommmendationsCounter === buildRecommendationsCounter) {
+	try {
+	  attempts++;
+	  console.log("tryBuildRecommendations, attempt " + attempts, 'counter:', ourBuildRecommmendationsCounter);
+
+	  Meteor.call("tryBuildRecommendations",
+		      journeyId,
+		      ourBuildRecommmendationsCounter);
+	  console.log('Successful: ', ourBuildRecommmendationsCounter);
+	  break;
+	} catch (e) {
+	  console.log('Attempt failed with error: ', e.message);
+	  if (attempts === MAX_ATTEMPTS) {
+	    error = e;
+	    break;
+	  } else {
+	    Meteor._sleepForMs(1000 * Math.pow(1.15, attempts));
+	  }
+	} finally {
+	  if(ourBuildRecommmendationsCounter !== buildRecommendationsCounter) {
+	    console.log('We canceled counter ', ourBuildRecommmendationsCounter);
+	    return;
+	  }
+	}
       }
     }
 
@@ -62,7 +81,7 @@ Meteor.methods({
       Journeys.update(journeyId,
                       {$set: {error: error.message},
                        $unset: {recommendationsLoaded: true}});
-      throw error;
+      // throw error;
     } else {
       Journeys.update(journeyId,
                       {$unset: {error: true}});
@@ -71,7 +90,7 @@ Meteor.methods({
 
   // build `journey.current.recommendations`. updates a progress bar,
   // so this is best run not at the top-level of a method.
-  tryBuildRecommendations: function (journeyId) {
+  tryBuildRecommendations: function (journeyId, ourBuildRecommmendationsCounter) {
     var journey = Journeys.findOne(journeyId);
     var trackId = journey.current.id;
 
@@ -83,6 +102,7 @@ Meteor.methods({
     }).data;
 
     var i = 0;
+    var printedSkip = false;
     var futures = _.map(favoriters, function (user) {
       var fut = new Future;
 
@@ -92,8 +112,15 @@ Meteor.methods({
           client_id: soundcloudClientId
         }
       }, function (err, res) {
-        i++;
-        Journeys.update(journeyId, {$set: {recommendationsLoaded: i / favoriters.length}});
+        if (ourBuildRecommmendationsCounter === buildRecommendationsCounter) {
+          i++;
+          Journeys.update(journeyId, {$set: {recommendationsLoaded: i / favoriters.length}});
+        } else {
+          if (!printedSkip) {
+            console.log("stopping buildRecommendations call");
+            printedSkip = true;
+          }
+        }
         fut.resolver()(null, res);
       });
 
@@ -102,28 +129,37 @@ Meteor.methods({
 
     Future.wait(futures);
 
+    if (ourBuildRecommmendationsCounter !== buildRecommendationsCounter) {
+      // we're already building other recommendations
+      return false;
+    }
+
+    // _noYieldsAllowed to be ensure the recommendation counter check is enough
     var recommendations = {};
-    _.each(futures, function (future) {
-      var likes = future.get().data;
-      likes && _.each(likes, function (like) {
-        if (like.kind === 'track') {
-          recommendations[like.id] = recommendations[like.id] ||
-            _.extend({rank: 0}, _.pick(like, 'id', 'artwork_url'));
-          // XXX think about the math with tracks with many followers, vs <200.
-          recommendations[like.id].rank += 1;
-        }
+    Meteor._noYieldsAllowed(function () {
+      _.each(futures, function (future) {
+        var likes = future.get().data;
+        likes && _.each(likes, function (like) {
+          if (like.kind === 'track') {
+            recommendations[like.id] = recommendations[like.id] ||
+              _.extend({rank: 0}, _.pick(like, 'id', 'artwork_url'));
+            // XXX think about the math with tracks with many followers, vs <200.
+            recommendations[like.id].rank += 1;
+          }
+        });
       });
-    });
 
-    // a rank of 1 is almost surely just a fluke.
-    _.each(recommendations, function (entry, id) {
-      if (entry.rank === 1)
-        delete recommendations[id];
-    });
+      // a rank of 1 is almost surely just a fluke.
+      _.each(recommendations, function (entry, id) {
+        if (entry.rank === 1)
+          delete recommendations[id];
+      });
 
-    delete recommendations[trackId];
+      delete recommendations[trackId];
+    });
 
     Journeys.update(journeyId, {$set: {"current.recommendations": recommendations}});
+    return true;
   }
 });
 

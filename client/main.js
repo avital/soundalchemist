@@ -57,7 +57,7 @@ Template.main.helpers({
   recommendations: function () {
     return journey() && journey().recommendations;
   },
-  recommendationsLoaded: function () {
+  recommendationsLoading: function () {
     return journey() && journey().recommendationsLoaded && journey().recommendationsLoaded !== 1;
   },
   recommendationsLoadedPercent: function () {
@@ -67,7 +67,12 @@ Template.main.helpers({
     return journey() && journey().past && Meteor._get(journey(), 'future', 1, 0);
   },
   futureEntry: function (side, i) {
-    return journey() && Meteor._get(journey(), 'future', side, i);
+    if (side === 0) {
+      return journey() && Meteor._get(journey(), 'future', side, i);
+    } else {
+      return journey() && Meteor._get(journey(), 'future', side, i)
+        && journey().recommendationsLoaded === 1;
+    }
   },
   directions: function () {
     if (Template.main.canVote())
