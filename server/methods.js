@@ -214,3 +214,11 @@ var pairsWithoutPlayed = function (pairs, journey) {
     }) || parseInt(p[0], 10) === journey.current.id;
   });
 };
+
+Meteor.methods({
+  clone: function (journeyId) {
+    var journey = Journeys.findOne(journeyId);
+    delete journey._id;
+    return Journeys.insert(journey);
+  }
+});

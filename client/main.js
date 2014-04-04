@@ -1,7 +1,8 @@
 var Router = Backbone.Router.extend({
   routes: {
     "": "main",
-    "journey/:journeyId": "journey"
+    "journey/:journeyId": "journey",
+    "start-journey-at/:journeyId": "fork"
   },
 
   main: function() {
@@ -9,9 +10,16 @@ var Router = Backbone.Router.extend({
     this.navigate("/");
   },
 
-  journey: function(journeyId) {
+  journey: function (journeyId) {
     Session.set("journeyId", journeyId);
     this.navigate("/journey/" + journeyId);
+  },
+
+  fork: function (journeyId) {
+    var router = this;
+    Meteor.call("clone", journeyId, function (err, newJourneyId) {
+      router.navigate("/journey/" + newJourneyId, true);
+    });
   }
 });
 var router = new Router;
