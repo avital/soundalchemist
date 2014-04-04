@@ -21,6 +21,8 @@ Meteor.methods({
           }
         }).data;
       } else {
+        if (!/^http/.test(opts.url))
+          opts.url = 'http://' + opts.url;
         data = HTTP.get("http://api.soundcloud.com/resolve.json", {
           params: {
             url: opts.url,
@@ -174,7 +176,7 @@ Meteor.methods({
     // start, but prepare recommendations in the background
     Meteor.defer(function () {
       Meteor.call("buildRecommendations", journeyId);
-      Meteor.call("vote", journeyId, +1);
+      Meteor.call("start", journeyId);
     });
 
     return journeyId;
@@ -185,7 +187,7 @@ updateFuture = function (journey) {
   if (!journey.future)
     journey.future = {};
 
-  _.each([-2, -1, 0, 1, 2], function (direction) {
+  _.each([-3, -2, -1, 0, 1, 2, 3], function (direction) {
     var directedRecommendations = EJSON.clone(journey.recommendations);
 
     _.each(journey.current.recommendations, function (rec, id) {

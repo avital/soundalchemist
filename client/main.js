@@ -84,7 +84,9 @@ Template.main.helpers({
     return journey() && Math.floor(journey().recommendationsLoaded * 100);
   },
   canVote: function () {
-    return journey() && journey().past && Meteor._get(journey(), 'future', 1, 0);
+    return journey() && journey().past
+      && (Meteor._get(journey(), 'future', 1, 0)
+          || Meteor._get(journey(), 'future', -1, 0));
   },
   futureEntry: function (side, i) {
     if (side === 0) {
@@ -218,20 +220,30 @@ var animateEntryToCurrent = function (transition) {
   });
 };
 
+var lastSliderVal;
+
 Template.slider.events({
   'change .slider': function (evt, tmpl) {
-    var val = tmpl.$('.slider').val();
-    Meteor.call("vote", Session.get("journeyId"), val - (tmpl.lastVal || 0));
-    tmpl.lastVal = val;
+    var val = parseFloat(tmpl.$('.slider').val());
+    Meteor.call("vote", Session.get("journeyId"), val - lastSliderVal);
+    lastSliderVal = val;
   },
   'click .turn-slider': function (evt, tmpl) {
     var diff = evt.target.value === '>' ? +1 : -1;
     var range = tmpl.$('.slider');
-    tmpl.lastVal = parseFloat(range.val());
-    range.val(tmpl.lastVal + diff);
-    if (parseFloat(range.val()) !== tmpl.lastVal) {
+    lastSliderVal = parseFloat(range.val());
+    range.val(lastSliderVal + diff);
+    if (parseFloat(range.val()) !== lastSliderVal) {
       Meteor.call("vote", Session.get("journeyId"), diff);
-      tmpl.lastVal = tmpl.lastVal + diff;
+      lastSliderVal = lastSliderVal + diff;
     }
+  }
+});
+
+Template.slider.helpers({
+  weight: function () {
+    var weight = journey() && journey().currentWeight;
+    lastSliderVal = weight;
+    return weight;
   }
 });

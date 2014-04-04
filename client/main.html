@@ -49,6 +49,10 @@
                   disabled>
             {{recommendationsLoadedPercent}}%
           </button>
+        {{else}}
+          {{#if canVote}}
+            {{> slider}}
+          {{/if}}
         {{/if}}
       {{/if}}
 
@@ -88,7 +92,7 @@
   <div class="slider-wrapper">
     <input class="turn-slider" type="button" value="<" />
     <div style="display: inline-block;">
-      <input class="slider" type="range" min="-3" max="3" value="0" />
+      <input class="slider" type="range" min="-3" max="3" value="{{weight}}" />
 
       <div style="position: relative; height: 20px">
         <div class="tickmark" style="left: 0px;"></div>
