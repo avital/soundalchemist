@@ -51,8 +51,20 @@ Template.main.helpers({
   futureArtworkUrl: function (side, i) {
     return journey() && Meteor._get(journey(), 'future', side, i, "artwork_url");
   },
+  tooltip: function (side, i) {
+    var info;
+    if (side < 0) { // from past
+      info = journey() && Meteor._get(journey(), 'past', -side - 1);
+    } else { // from future
+      info = journey() && Meteor._get(journey(), 'future', side, i);
+    }
+    return info && (info.title + " by " + info.username);
+  },
   currentTrackId: function () {
     return Session.get("currentTrackId");
+  },
+  autoplay: function () {
+    return Meteor.settings && Meteor._get(Meteor.settings, 'public', 'prod');
   },
   recommendations: function () {
     return journey() && journey().recommendations;
@@ -142,8 +154,6 @@ var start = function (url) {
         Session.set("loading", false);
         router.journey(journeyId);
         Deps.flush();
-
-//        soundManager.setup(
       });
     }
   });
@@ -217,3 +227,4 @@ var animateEntryToCurrent = function (transition) {
     });
   });
 };
+

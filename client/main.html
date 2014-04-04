@@ -10,16 +10,16 @@
 
     {{#if started}}
       {{#if pastArtworkUrl 1}}
-        <div class="past past1" style="background-image: url({{pastArtworkUrl 1}})"></div>
+        <div class="past past1" title="{{tooltip -2}}" style="background-image: url({{pastArtworkUrl 1}})"></div>
       {{/if}}
       {{#if pastArtworkUrl 0}}
-        <div class="past past0" style="background-image: url({{pastArtworkUrl 0}})"></div>
+        <div class="past past0" title="{{tooltip -1}}" style="background-image: url({{pastArtworkUrl 0}})"></div>
       {{/if}}
 
       <div class="current">
         {{#if currentTrackId}}
           <iframe id="player" width="100%" height="166" scrolling="no" frameborder="no"
-                  src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/{{currentTrackId}}&amp;color=ff6600&amp;auto_play=true&amp;show_artwork=true&amp;show_comments=false&amp;default_height=100&amp;enable_api=true">
+                  src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/{{currentTrackId}}&amp;color=ff6600&amp;auto_play={{autoplay}}&amp;show_artwork=true&amp;show_comments=false&amp;default_height=100&amp;enable_api=true">
           </iframe>
         {{else}}
           <div class="loading"></div>
@@ -49,7 +49,7 @@
         {{#if future}}
           {{#each distance}}
             {{#if futureEntry .. .}}
-              <div class="future future{{..}} future{{..}}_{{.}}"
+              <div title="{{tooltip .. .}}" class="future future{{..}} future{{..}}_{{.}}"
                    style="background-image: url({{futureArtworkUrl .. .}}); margin-top: {{top}}px; margin-left: {{left ..}}px">
               </div>
             {{/if}}
@@ -58,6 +58,9 @@
       {{/each}}
 
     {{else}}
+      <div class="loading-heading">
+        Embark on a musical journey in infinite dimensions
+      </div>
       <div class="entry-wrapper">
         {{#if loading}}
           <div class="loading">

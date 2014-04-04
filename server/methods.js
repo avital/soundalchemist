@@ -3,7 +3,7 @@
 soundcloudClientId = "17a48e602c9a59c5a713b456b60fea68";
 
 var Future = Npm.require("fibers/future");
-var LIMIT = 20;//Meteor._get(Meteor.settings, 'public', 'prod') ? 120 : 5;
+var LIMIT = Meteor._get(Meteor.settings, 'public', 'prod') ? 120 : 20;
 var MAX_LIMIT = 200;
 
 // used to break out of a call to buildRecommendation
@@ -35,7 +35,8 @@ Meteor.methods({
     if (data.kind !== 'track')
       throw new Meteor.Error(400, "not a track");
 
-    data = _.pick(data, 'id', 'artwork_url');
+    data.username = data.user.username;
+    data = _.pick(data, 'id', 'artwork_url', 'title', 'username');
     return data;
   },
 
@@ -141,8 +142,9 @@ Meteor.methods({
         var likes = future.get().data;
         likes && _.each(likes, function (like) {
           if (like.kind === 'track') {
+            like.username = like.user.username;
             recommendations[like.id] = recommendations[like.id] ||
-              _.extend({rank: 0}, _.pick(like, 'id', 'artwork_url'));
+              _.extend({rank: 0}, _.pick(like, 'id', 'artwork_url', 'username', 'title'));
             // XXX think about the math with tracks with many followers, vs <200.
             recommendations[like.id].rank += 1;
           }
