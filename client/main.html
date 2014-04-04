@@ -43,6 +43,13 @@
             {{> slider}}
           {{/if}}
         {{/if}}
+      {{else}}
+        {{#if recommendationsLoading}}
+          <button class="act skip" type="button"
+                  disabled>
+            {{recommendationsLoadedPercent}}%
+          </button>
+        {{/if}}
       {{/if}}
 
       {{#each directions}}
