@@ -99,9 +99,6 @@ Template.main.helpers({
   left: function(dir) {
     return dir * (this + 6) * 25 - (100/* @coversize*/ / 2);
   },
-  waiting: function () {
-    return Session.get("waiting");
-  },
   past: function () {
     return journey() && journey().past;
   }
@@ -124,22 +121,7 @@ Template.main.events({
     }
   },
   'click .skip': function () {
-    Session.set("waiting", true);
-    Meteor.call("skip", Session.get("journeyId"), function () {
-      Session.set("waiting", false);
-    });
-  },
-  'click .downvote': function () {
-    Session.set("waiting", true);
-    Meteor.call("vote", Session.get("journeyId"), -1, function () {
-      Session.set("waiting", false);
-    });
-  },
-  'click .upvote': function () {
-    Session.set("waiting", true);
-    Meteor.call("vote", Session.get("journeyId"), +1, function () {
-      Session.set("waiting", false);
-    });
+    Meteor.call("skip", Session.get("journeyId"));
   }
 });
 
@@ -228,3 +210,20 @@ var animateEntryToCurrent = function (transition) {
   });
 };
 
+Template.slider.events({
+  'change .slider': function (evt, tmpl) {
+    var val = tmpl.$('.slider').val();
+    Meteor.call("vote", Session.get("journeyId"), val - (tmpl.lastVal || 0));
+    tmpl.lastVal = val;
+  },
+  'click .turn-slider': function (evt, tmpl) {
+    var diff = evt.target.value === '>' ? +1 : -1;
+    var range = tmpl.$('.slider');
+    tmpl.lastVal = parseFloat(range.val());
+    range.val(tmpl.lastVal + diff);
+    if (parseFloat(range.val()) !== tmpl.lastVal) {
+      Meteor.call("vote", Session.get("journeyId"), diff);
+      tmpl.lastVal = tmpl.lastVal + diff;
+    }
+  }
+});

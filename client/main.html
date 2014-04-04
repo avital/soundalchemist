@@ -5,7 +5,7 @@
 <template name="main">
   <div class="main">
     {{#if started}}
-      <a class="back">&lt; Start a new journey</a>
+      <a class="back">&lt; Start fresh new journey</a>
     {{/if}}
 
     {{#if started}}
@@ -32,6 +32,7 @@
 
       {{#if future}}
         <button class="act skip">next</button>
+
         {{#if recommendationsLoading}}
           <button class="act upvote" type="button"
                   disabled>
@@ -39,8 +40,7 @@
           </button>
         {{else}}
           {{#if canVote}}
-            <button class="act downvote">less like this</button>
-            <button class="act upvote">even more like this</button>
+            {{> slider}}
           {{/if}}
         {{/if}}
       {{/if}}
@@ -74,5 +74,26 @@
         {{/if}}
       </div>
     {{/if}}
+  </div>
+</template>
+
+<template name="slider">
+  <div class="slider-wrapper">
+    <input class="turn-slider" type="button" value="<" />
+    <div style="display: inline-block;">
+      <input class="slider" type="range" min="-3" max="3" value="0" />
+
+      <div style="position: relative; height: 20px">
+        <div class="tickmark" style="left: 0px;"></div>
+        <div class="tickmark" style="left: 30px;"></div>
+        <div class="tickmark" style="left: 60px;"></div>
+        <div class="tickmark" style="left: 90px; width: 2px; margin-left: 7.5px;"></div>
+        <div class="tickmark" style="left: 120px;"></div>
+        <div class="tickmark" style="left: 150px;"></div>
+        <div class="tickmark" style="left: 180px;"></div>
+      </div>
+    </div>
+
+    <input class="turn-slider" type="button" value=">" />
   </div>
 </template>

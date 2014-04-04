@@ -7,9 +7,10 @@ body {
 
 @mainwidth: 1000px;
 @mainheight: 760px;
-@act-height: 70px;
+@act-height: 40px;
 @act-width: 110px;
-@act-gap: 10px;
+@slider-gap: 5px;
+@act-gap: 40px;
 
 .back {
     position: absolute;
@@ -105,20 +106,20 @@ body {
 }
 
 .future0 {
-    top: @currenttop + @currentheight + @act-height + @act-gap * 2;
+    top: @currenttop + @currentheight + @act-height + @slider-gap * 2 + 35px;
 }
 
 @future1-gap-width: 130px;
 @future1-gap-height: 50px;
 
 .future1, .future-1 {
-    top: @currenttop + @currentheight + @act-height + @act-gap * 2 + @future1-gap-height;
+    top: @currenttop + @currentheight + @act-height + @slider-gap * 2 + @future1-gap-height;
     opacity: 0.4;
 }
 
 .future2, .future-2 {
     opacity: 0.2;
-    top: @currenttop + @currentheight + @act-height + @act-gap * 2 + @future1-gap-height + 55px;
+    top: @currenttop + @currentheight + @act-height + @slider-gap * 2 + @future1-gap-height + 55px;
 }
 
 .current {
@@ -173,3 +174,33 @@ body {
     text-align: center;
 }
 
+@slider-width: 194px;
+
+.slider-wrapper {
+    position: absolute;
+    left: 50%;
+    margin-left: -132px;
+    top: @currenttop + @currentheight + @slider-gap;
+}
+
+.turn-slider {
+    width: 30px;
+    font-size: 18px;
+    background-color: #44dd66;
+}
+
+.tickmark {
+    background-color: black;
+    width: 1px;
+    height: 10px;
+}
+
+.slider {
+    width: @slider-width;
+}
+
+.tickmark {
+    display: inline-block;
+    position: absolute;
+    margin-left: 8px;
+}
