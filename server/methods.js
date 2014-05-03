@@ -9,6 +9,8 @@ var MAX_LIMIT = 200;
 // used to break out of a call to buildRecommendation
 var buildRecommendationsCounter = 0;
 
+var TRACK_FIELDS = ["id", "artwork_url", "title", "username", "permalink_url"];
+
 Meteor.methods({
   // opts: either {trackId: 172234} or {url: "http://soundcloud.com/foo/bar"}
   loadTrack: function (opts) {
@@ -38,7 +40,7 @@ Meteor.methods({
       throw new Meteor.Error(400, "not a track");
 
     data.username = data.user.username;
-    data = _.pick(data, 'id', 'artwork_url', 'title', 'username');
+    data = _.pick(data, TRACK_FIELDS);
     return data;
   },
 
@@ -146,7 +148,7 @@ Meteor.methods({
           if (like.kind === 'track') {
             like.username = like.user.username;
             recommendations[like.id] = recommendations[like.id] ||
-              _.extend({rank: 0}, _.pick(like, 'id', 'artwork_url', 'username', 'title'));
+              _.extend({rank: 0}, _.pick(like, TRACK_FIELDS));
             // XXX think about the math with tracks with many followers, vs <200.
             recommendations[like.id].rank += 1;
           }
