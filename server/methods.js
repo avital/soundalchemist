@@ -66,7 +66,7 @@ Meteor.methods({
 	  console.log('Successful: ', ourBuildRecommmendationsCounter);
 	  break;
 	} catch (e) {
-	  console.log('Attempt failed with error: ', e.message);
+	  console.log('Attempt failed with error: ', e.message, e.stack);
 	  if (attempts === MAX_ATTEMPTS) {
 	    error = e;
 	    break;
@@ -143,6 +143,12 @@ Meteor.methods({
     var recommendations = {};
     Meteor._noYieldsAllowed(function () {
       _.each(futures, function (future) {
+        // not sure why this happens but this is what you get when you
+        // ask the soundcloud api for the list of likes for
+        // https://soundcloud.com/jingles-jacquelyn
+        if (future.get() === null)
+          return;
+
         var likes = future.get().data;
         likes && _.each(likes, function (like) {
           if (like.kind === 'track') {
