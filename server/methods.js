@@ -7,7 +7,7 @@ var LIMIT = Meteor._get(Meteor.settings, 'public', 'prod') ? 120 : 20;
 var MAX_LIMIT = 200;
 
 // used to break out of a call to buildRecommendation
-var buildRecommendationsCounter = 0;
+buildRecommendationsCounter = 0;
 
 var TRACK_FIELDS = ["id", "artwork_url", "title", "username", "permalink_url"];
 
@@ -99,81 +99,86 @@ Meteor.methods({
     var journey = Journeys.findOne(journeyId);
     var trackId = journey.current.id;
 
-    var favoriters = HTTP.get("http://api.soundcloud.com/tracks/" + trackId + "/favoriters.json", {
-      params: {
-        limit: LIMIT,
-        client_id: soundcloudClientId
-      }
-    }).data;
-
-    var i = 0;
-    var printedSkip = false;
-    var futures = _.map(favoriters, function (user) {
-      var fut = new Future;
-
-      var likes = HTTP.get("http://api.soundcloud.com/users/" + user.id + "/favorites.json", {
-        params: {
-          limit: MAX_LIMIT,
-          client_id: soundcloudClientId
-        }
-      }, function (err, res) {
-        if (ourBuildRecommmendationsCounter === buildRecommendationsCounter) {
-          i++;
-          Journeys.update(journeyId, {$set: {recommendationsLoaded: i / favoriters.length}});
-        } else {
-          if (!printedSkip) {
-            console.log("stopping buildRecommendations call");
-            printedSkip = true;
-          }
-        }
-        fut.resolver()(null, res);
-      });
-
-      return fut;
-    });
-
-    Future.wait(futures);
-
-    if (ourBuildRecommmendationsCounter !== buildRecommendationsCounter) {
-      // we're already building other recommendations
-      return false;
-    }
-
-    // _noYieldsAllowed to be ensure the recommendation counter check is enough
-    var recommendations = {};
-    Meteor._noYieldsAllowed(function () {
-      _.each(futures, function (future) {
-        // not sure why this happens but this is what you get when you
-        // ask the soundcloud api for the list of likes for
-        // https://soundcloud.com/jingles-jacquelyn
-        if (future.get() === null)
-          return;
-
-        var likes = future.get().data;
-        likes && _.each(likes, function (like) {
-          if (like.kind === 'track') {
-            like.username = like.user.username;
-            recommendations[like.id] = recommendations[like.id] ||
-              _.extend({rank: 0}, _.pick(like, TRACK_FIELDS));
-            // XXX think about the math with tracks with many followers, vs <200.
-            recommendations[like.id].rank += 1;
-          }
-        });
-      });
-
-      // a rank of 1 is almost surely just a fluke.
-      _.each(recommendations, function (entry, id) {
-        if (entry.rank === 1)
-          delete recommendations[id];
-      });
-
-      delete recommendations[trackId];
-    });
-
+    var recommendations = generateRecommendations(journeyId, trackId, ourBuildRecommmendationsCounter);
     Journeys.update(journeyId, {$set: {"current.recommendations": recommendations}});
     return true;
   }
 });
+
+generateRecommendations = function (journeyId, trackId, ourBuildRecommmendationsCounter) {
+  var favoriters = HTTP.get("http://api.soundcloud.com/tracks/" + trackId + "/favoriters.json", {
+    params: {
+      limit: LIMIT,
+      client_id: soundcloudClientId
+    }
+  }).data;
+
+  var i = 0;
+  var printedSkip = false;
+  var futures = _.map(favoriters, function (user) {
+    var fut = new Future;
+
+    var likes = HTTP.get("http://api.soundcloud.com/users/" + user.id + "/favorites.json", {
+      params: {
+        limit: MAX_LIMIT,
+        client_id: soundcloudClientId
+      }
+    }, function (err, res) {
+      if (ourBuildRecommmendationsCounter === buildRecommendationsCounter) {
+        i++;
+        Journeys.update(journeyId, {$set: {recommendationsLoaded: i / favoriters.length}});
+      } else {
+        if (!printedSkip) {
+          console.log("stopping buildRecommendations call");
+          printedSkip = true;
+        }
+      }
+      fut.resolver()(null, res);
+    });
+
+    return fut;
+  });
+
+  Future.wait(futures);
+
+  if (ourBuildRecommmendationsCounter !== buildRecommendationsCounter) {
+    // we're already building other recommendations
+    return false;
+  }
+
+  // _noYieldsAllowed to be ensure the recommendation counter check is enough
+  var recommendations = {};
+  Meteor._noYieldsAllowed(function () {
+    _.each(futures, function (future) {
+      // not sure why this happens but this is what you get when you
+      // ask the soundcloud api for the list of likes for
+      // https://soundcloud.com/jingles-jacquelyn
+      if (future.get() === null)
+        return;
+
+      var likes = future.get().data;
+      likes && _.each(likes, function (like) {
+        if (like.kind === 'track') {
+          like.username = like.user.username;
+          recommendations[like.id] = recommendations[like.id] ||
+            _.extend({rank: 0}, _.pick(like, TRACK_FIELDS));
+          // XXX think about the math with tracks with many followers, vs <200.
+          recommendations[like.id].rank += 1;
+        }
+      });
+    });
+
+    // a rank of 1 is almost surely just a fluke.
+    _.each(recommendations, function (entry, id) {
+      if (entry.rank === 1)
+        delete recommendations[id];
+    });
+
+    delete recommendations[trackId];
+  });
+
+  return recommendations;
+};
 
 Meteor.methods({
   startJourney: function (url) {
