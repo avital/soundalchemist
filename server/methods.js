@@ -183,7 +183,9 @@ generateRecommendations = function (journeyId, trackId, ourBuildRecommmendations
 Meteor.methods({
   startJourney: function (url) {
     var track = Meteor.call("loadTrack", {url: url});
-    var journeyId = Journeys.insert({current: track, recommendationsLoaded: 0.001});
+    var journey = {current: track, recommendationsLoaded: 0.001};
+    addHistory(journey, track, 1);
+    var journeyId = Journeys.insert(journey);
 
     // return immediately so users don't have to wait for music to
     // start, but prepare recommendations in the background
@@ -195,6 +197,12 @@ Meteor.methods({
     return journeyId;
   }
 });
+
+addHistory = function (journey, track, weight) {
+  if (!journey.history)
+    journey.history = [];
+  journey.history.unshift({track: track, weight: weight, date: new Date});
+};
 
 updateFuture = function (journey) {
   if (!journey.future)
