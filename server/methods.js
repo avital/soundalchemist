@@ -220,7 +220,7 @@ updateFuture = function (journey) {
     var pairs = pairsWithoutPlayed(_.pairs(directedRecommendations), journey);
 
     var trail = [];
-    _.times(5, function () {
+    _.times(10, function () {
       var maxPair = _.max(pairs, function (p) { return p[1].rank; });
       pairs = _.without(pairs, maxPair);
       trail.push(maxPair[1]);
